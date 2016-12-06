@@ -1,5 +1,7 @@
 package com.dev;
 
+import com.dev.util.Logger;
+
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -11,6 +13,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
+
+    private static final Logger LOG = new Logger(Main.class);
 
     private static final String DIRECTORY = "resources/";
     private static final String FILENAME_FILTER = "^\\d_spo_admin.log.\\d$";
@@ -29,7 +33,7 @@ public class Main {
 
     private static void findFiles() {
         File directory = new File(DIRECTORY);
-        System.out.println(directory.getAbsolutePath());
+        LOG.info(directory.getAbsolutePath());
         logFiles = directory.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -44,7 +48,7 @@ public class Main {
         logEntries = new ArrayList<>();
         for (File logFile : logFiles) {
             BufferedReader reader = new BufferedReader(new FileReader(logFile));
-            System.out.println("Reading from file: " + logFile);
+            LOG.info("Reading from file: " + logFile);
             String cluster = logFile.getName().substring(0, 1);
             String line;
             LogEntry logEntry = null;

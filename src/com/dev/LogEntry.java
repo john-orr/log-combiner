@@ -28,7 +28,7 @@ public class LogEntry implements Comparable {
 
     @Override
     public String toString() {
-        return cluster + "_" + content + "\n";
+        return cluster + " " + content + "\n";
     }
 
     public void append(String line) {

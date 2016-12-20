@@ -17,7 +17,7 @@ public class Main {
     private static final Logger LOG = new Logger(Main.class);
 
     private static final String DIRECTORY = "resources/";
-    private static final String FILENAME_FILTER = "^\\d_spo_admin.log.\\d$";
+    private static final String FILENAME_FILTER = "^\\d_spo_admin.log(.\\d)?$";
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";

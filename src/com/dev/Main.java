@@ -17,7 +17,7 @@ public class Main {
     private static final Logger LOG = new Logger(Main.class);
 
     private static final String DIRECTORY = "resources/";
-    private static final String FILENAME_FILTER = "^\\d_spo_admin.log(.\\d)?$";
+    private static final String FILENAME_FILTER = "^\\d_spo_admin.log(\\.\\d)?$";
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
@@ -52,6 +52,8 @@ public class Main {
             String cluster = logFile.getName().substring(0, 1);
             String line;
             LogEntry logEntry = null;
+            Date first = null;
+            Date last = null;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = DATE_PATTERN.matcher(line);
                 if (matcher.find()) {
@@ -62,6 +64,10 @@ public class Main {
                     // start new log entry
                     Date date = simpleDateFormat.parse(line);
                     logEntry = new LogEntry(date, line, cluster);
+                    if (first == null) {
+                        first = date;
+                    }
+                    last = date;
                 } else if (logEntry != null) {
                     // continuation of current entry
                     logEntry.append(line);
@@ -69,6 +75,8 @@ public class Main {
                     throw new IllegalStateException("Line could not be processed: " + line);
                 }
             }
+            LOG.info("File covers time period from " + simpleDateFormat.format(first) + " to " +
+                    simpleDateFormat.format(last));
         }
     }
 

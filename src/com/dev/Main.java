@@ -75,6 +75,8 @@ public class Main {
                     throw new IllegalStateException("Line could not be processed: " + line);
                 }
             }
+            // Write final LogEntry
+            logEntries.add(logEntry);
             LOG.info("File covers time period from " + simpleDateFormat.format(first) + " to " +
                     simpleDateFormat.format(last));
         }

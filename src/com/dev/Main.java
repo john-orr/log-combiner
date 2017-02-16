@@ -5,10 +5,7 @@ import com.dev.util.Logger;
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,14 +43,15 @@ public class Main {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_FORMAT);
 
         logEntries = new ArrayList<>();
+        Map<String, Date> firstDateForCluster = new HashMap<>();
+        Map<String, Date> lastDateForCluster = new HashMap<>();
         for (File logFile : logFiles) {
             BufferedReader reader = new BufferedReader(new FileReader(logFile));
             LOG.info("Reading from file: " + logFile);
             String cluster = logFile.getName().substring(0, 1);
             String line;
             LogEntry logEntry = null;
-            Date first = null;
-            Date last = null;
+            Date date = null;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = DATE_PATTERN.matcher(line);
                 if (matcher.find()) {
@@ -62,12 +60,11 @@ public class Main {
                         logEntries.add(logEntry);
                     }
                     // start new log entry
-                    Date date = simpleDateFormat.parse(line);
+                    date = simpleDateFormat.parse(line);
                     logEntry = new LogEntry(date, line, cluster);
-                    if (first == null) {
-                        first = date;
+                    if (!firstDateForCluster.containsKey(cluster) || firstDateForCluster.get(cluster).after(date)) {
+                        firstDateForCluster.put(cluster, date);
                     }
-                    last = date;
                 } else if (logEntry != null) {
                     // continuation of current entry
                     logEntry.append(line);
@@ -75,11 +72,35 @@ public class Main {
                     throw new IllegalStateException("Line could not be processed: " + line);
                 }
             }
+            if (!lastDateForCluster.containsKey(cluster) || lastDateForCluster.get(cluster).before(date)) {
+                lastDateForCluster.put(cluster, date);
+            }
             // Write final LogEntry
             logEntries.add(logEntry);
-            LOG.info("File covers time period from " + simpleDateFormat.format(first) + " to " +
-                    simpleDateFormat.format(last));
         }
+        LOG.info("These files cover the period\n\t\t\t\t\t\t" + simpleDateFormat
+                .format(latestFirstDate(firstDateForCluster)) + " to\n\t\t\t\t\t\t" + simpleDateFormat
+                .format(earliestLastDate(lastDateForCluster)));
+    }
+
+    private static Date earliestLastDate(Map<String, Date> lastDateForCluster) {
+        Date earliestLastDate = null;
+        for (Date lastDateOfCluster : lastDateForCluster.values()) {
+            if (earliestLastDate == null || earliestLastDate.after(lastDateOfCluster)) {
+                earliestLastDate = lastDateOfCluster;
+            }
+        }
+        return earliestLastDate;
+    }
+
+    private static Date latestFirstDate(Map<String, Date> firstDateForCluster) {
+        Date latestFirstDate = null;
+        for (Date firstDateOfCluster : firstDateForCluster.values()) {
+            if (latestFirstDate == null || latestFirstDate.before(firstDateOfCluster)) {
+                latestFirstDate = firstDateOfCluster;
+            }
+        }
+        return latestFirstDate;
     }
 
     private static void writeLogs() throws IOException {

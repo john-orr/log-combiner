@@ -13,8 +13,9 @@ public class Main {
 
     private static final Logger LOG = new Logger(Main.class);
 
-    private static final String DIRECTORY = "resources/";
-    private static final String FILENAME_FILTER = "^\\d_spo_admin.log(\\.\\d)?$";
+    private static final String RESOURCES_NODE1 = "resources/node1";
+    private static final String RESOURCES_NODE2 = "resources/node2";
+    private static final String FILENAME_FILTER = "^spo_admin.log(\\.\\d)?$";
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
@@ -29,14 +30,25 @@ public class Main {
     }
 
     private static void findFiles() {
-        File directory = new File(DIRECTORY);
-        LOG.info(directory.getAbsolutePath());
-        logFiles = directory.listFiles(new FilenameFilter() {
+        File resourcesNode1 = new File(RESOURCES_NODE1);
+        LOG.info(resourcesNode1.getAbsolutePath());
+        File[] node1Logs = resourcesNode1.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return name.matches(FILENAME_FILTER);
             }
         });
+        File resourcesNode2 = new File(RESOURCES_NODE2);
+        LOG.info(resourcesNode2.getAbsolutePath());
+        File[] node2Logs = resourcesNode2.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.matches(FILENAME_FILTER);
+            }
+        });
+        logFiles = new File[node1Logs.length + node2Logs.length];
+        System.arraycopy(node1Logs, 0, logFiles, 0, node1Logs.length);
+        System.arraycopy(node2Logs, 0, logFiles, node1Logs.length, node2Logs.length);
     }
 
     private static void readLogs() throws IOException, ParseException {
@@ -48,7 +60,7 @@ public class Main {
         for (File logFile : logFiles) {
             BufferedReader reader = new BufferedReader(new FileReader(logFile));
             LOG.info("Reading from file: " + logFile);
-            String cluster = logFile.getName().substring(0, 1);
+            String cluster = logFile.getParent().substring(logFile.getParent().length()-1);
             String line;
             LogEntry logEntry = null;
             Date date = null;

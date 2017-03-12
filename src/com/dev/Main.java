@@ -13,14 +13,13 @@ public class Main {
 
     private static final Logger LOG = new Logger(Main.class);
 
-    private static final String RESOURCES_NODE1 = "resources/node1";
-    private static final String RESOURCES_NODE2 = "resources/node2";
+    private static final List<String> LOCATIONS = Arrays.asList("resources/node1", "resources/node2");
     private static final String FILENAME_FILTER = "^spo_admin.log(\\.\\d)?$";
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
 
-    private static File[] logFiles;
+    private static List<File> logFiles;
     private static List<LogEntry> logEntries;
 
     public static void main(String[] args) throws IOException, ParseException {
@@ -30,25 +29,22 @@ public class Main {
     }
 
     private static void findFiles() {
-        File resourcesNode1 = new File(RESOURCES_NODE1);
-        LOG.info(resourcesNode1.getAbsolutePath());
-        File[] node1Logs = resourcesNode1.listFiles(new FilenameFilter() {
+        logFiles = new ArrayList<>();
+        for (String location : LOCATIONS) {
+            logFiles.addAll(getFiles(location));
+        }
+    }
+
+    private static List<File> getFiles(String directory) {
+        File directoryFile = new File(directory);
+        LOG.info(directoryFile.getAbsolutePath());
+        File[] files = directoryFile.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 return name.matches(FILENAME_FILTER);
             }
         });
-        File resourcesNode2 = new File(RESOURCES_NODE2);
-        LOG.info(resourcesNode2.getAbsolutePath());
-        File[] node2Logs = resourcesNode2.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.matches(FILENAME_FILTER);
-            }
-        });
-        logFiles = new File[node1Logs.length + node2Logs.length];
-        System.arraycopy(node1Logs, 0, logFiles, 0, node1Logs.length);
-        System.arraycopy(node2Logs, 0, logFiles, node1Logs.length, node2Logs.length);
+        return Arrays.asList(files);
     }
 
     private static void readLogs() throws IOException, ParseException {
@@ -60,13 +56,13 @@ public class Main {
         for (File logFile : logFiles) {
             BufferedReader reader = new BufferedReader(new FileReader(logFile));
             LOG.info("Reading from file: " + logFile);
-            String cluster = logFile.getParent().substring(logFile.getParent().length()-1);
+            String cluster = getCluster(logFile);
             String line;
             LogEntry logEntry = null;
             Date date = null;
             while ((line = reader.readLine()) != null) {
-                Matcher matcher = DATE_PATTERN.matcher(line);
-                if (matcher.find()) {
+                Matcher datePatternMatcher = DATE_PATTERN.matcher(line);
+                if (datePatternMatcher.find()) {
                     if (logEntry != null) {
                         // commit entry to list
                         logEntries.add(logEntry);
@@ -93,6 +89,10 @@ public class Main {
         LOG.info("These files cover the period\n\t\t\t\t\t\t" + simpleDateFormat
                 .format(latestFirstDate(firstDateForCluster)) + " to\n\t\t\t\t\t\t" + simpleDateFormat
                 .format(earliestLastDate(lastDateForCluster)));
+    }
+
+    private static String getCluster(File logFile) {
+        return logFile.getParent().substring(logFile.getParent().length()-1);
     }
 
     private static Date earliestLastDate(Map<String, Date> lastDateForCluster) {

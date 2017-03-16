@@ -18,6 +18,8 @@ public class Main {
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
+    private static final Pattern EXCLUDE_PATTERN =
+            Pattern.compile("InternationalPlanCountryCodesInitializer");
 
     private static List<File> logFiles;
     private static List<LogEntry> logEntries;
@@ -79,6 +81,10 @@ public class Main {
                 } else {
                     throw new IllegalStateException("Line could not be processed: " + line);
                 }
+                Matcher excludeMatcher = EXCLUDE_PATTERN.matcher(line);
+                if (excludeMatcher.find()) {
+                    logEntry.setExclude();
+                }
             }
             if (!lastDateForCluster.containsKey(cluster) || lastDateForCluster.get(cluster).before(date)) {
                 lastDateForCluster.put(cluster, date);
@@ -120,7 +126,9 @@ public class Main {
 
         FileWriter writer = new FileWriter(OUTPUT_FILE);
         for (LogEntry logEntry : logEntries) {
-            writer.write(logEntry.toString());
+            if (!logEntry.isExclude()) {
+                writer.write(logEntry.toString());
+            }
         }
         writer.close();
     }

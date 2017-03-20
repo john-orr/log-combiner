@@ -22,7 +22,7 @@ public class LogEntry implements Comparable {
         Date excludeBeforeDate = dateFormatter.parse(FROM_DATE);
         Date excludeAfterDate = new Date();
         if (!TO_DATE.equals("")) {
-            dateFormatter.parse(TO_DATE);
+            excludeAfterDate = dateFormatter.parse(TO_DATE);
         }
         if (date.before(excludeBeforeDate) || date.after(excludeAfterDate)) {
             exclude = true;

@@ -1,40 +1,39 @@
 package com.dev;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Pattern;
 
 public class LogEntry implements Comparable {
 
-    private static final String FROM_DATE = "16/03/2017";
-    private static final String TO_DATE = "";
+    static Date FROM_DATE;
+    static Date TO_DATE;
+    static Pattern EXCLUDE_PATTERN;
 
     private Date date;
     private StringBuilder content;
     private String cluster;
     private boolean exclude;
 
-    LogEntry(Date date, String content, String cluster) throws ParseException {
+    LogEntry(Date date, String content, String cluster) {
         this.date = date;
         this.content = new StringBuilder(content);
         this.cluster = cluster;
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
-        Date excludeBeforeDate = dateFormatter.parse(FROM_DATE);
-        Date excludeAfterDate = new Date();
-        if (!TO_DATE.equals("")) {
-            excludeAfterDate = dateFormatter.parse(TO_DATE);
-        }
-        if (date.before(excludeBeforeDate) || date.after(excludeAfterDate)) {
+        if (outsideRange(date) || shouldExclude(content)) {
             exclude = true;
         }
     }
 
-    public boolean isExclude() {
-        return exclude;
+    private boolean shouldExclude(String content) {
+        return EXCLUDE_PATTERN != null && EXCLUDE_PATTERN.matcher(content).find();
     }
 
-    public void setExclude() {
-        exclude = true;
+    private boolean outsideRange(Date date) {
+        return FROM_DATE != null && date.before(FROM_DATE)
+                || TO_DATE != null && date.after(TO_DATE);
+    }
+
+    public boolean isExclude() {
+        return exclude;
     }
 
     @Override
@@ -56,5 +55,8 @@ public class LogEntry implements Comparable {
 
     public void append(String line) {
         content.append("\n").append(line);
+        if (shouldExclude(line)) {
+            exclude = true;
+        }
     }
 }

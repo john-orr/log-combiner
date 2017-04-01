@@ -1,5 +1,6 @@
 package com.dev;
 
+import com.dev.util.LogCombinerException;
 import com.dev.util.Logger;
 
 import java.io.*;
@@ -18,16 +19,86 @@ public class Main {
     private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
-    private static final Pattern EXCLUDE_PATTERN =
-            Pattern.compile("InternationalPlanCountryCodesInitializer");
+
+    private static Properties PROPERTIES = new Properties();
 
     private static List<File> logFiles;
     private static List<LogEntry> logEntries;
 
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws LogCombinerException {
+        init();
         findFiles();
         readLogs();
         writeLogs();
+    }
+
+    private static void init() throws LogCombinerException {
+        loadProperties();
+        setExcludePattern();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        parseDateFrom(simpleDateFormat);
+        parseDateTo(simpleDateFormat);
+    }
+
+    private static void setExcludePattern() throws LogCombinerException {
+        String regex = PROPERTIES.getProperty("exclude.regex");
+        if (regex != null) {
+            if (!regex.isEmpty()) {
+                LogEntry.EXCLUDE_PATTERN = Pattern.compile(regex);
+            }
+        } else {
+            throw new LogCombinerException("Property exclude.regex not found");
+        }
+    }
+
+    private static void parseDateTo(SimpleDateFormat simpleDateFormat) throws LogCombinerException {
+        String dateTo = PROPERTIES.getProperty("date.to");
+        if (dateTo != null) {
+            if (!dateTo.isEmpty()) {
+                try {
+                    LogEntry.TO_DATE = simpleDateFormat.parse(dateTo);
+                } catch (ParseException e) {
+                    throw new LogCombinerException("Error parsing property date.to", e);
+                }
+            }
+        } else {
+            throw new LogCombinerException("Property date.to not found");
+        }
+    }
+
+    private static void parseDateFrom(SimpleDateFormat simpleDateFormat) throws LogCombinerException {
+        String dateFrom = PROPERTIES.getProperty("date.from");
+        if (dateFrom != null) {
+            if (!dateFrom.isEmpty()) {
+                try {
+                    LogEntry.FROM_DATE = simpleDateFormat.parse(dateFrom);
+                } catch (ParseException e) {
+                    throw new LogCombinerException("Error parsing property date.from", e);
+                }
+            }
+        } else {
+            throw new LogCombinerException("Property date.from not found");
+        }
+    }
+
+    private static void loadProperties() throws LogCombinerException {
+        FileInputStream input;
+        input = getFileInputStream();
+        try {
+            PROPERTIES.load(input);
+        } catch (IOException e) {
+            throw new LogCombinerException("Error loading properties", e);
+        }
+    }
+
+    private static FileInputStream getFileInputStream() throws LogCombinerException {
+        FileInputStream input;
+        try {
+            input = new FileInputStream("resources/config.properties");
+        } catch (FileNotFoundException e) {
+            throw new LogCombinerException("Error opening file", e);
+        }
+        return input;
     }
 
     private static void findFiles() {
@@ -49,17 +120,17 @@ public class Main {
         return Arrays.asList(files);
     }
 
-    private static void readLogs() throws IOException, ParseException {
+    private static void readLogs() throws LogCombinerException {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_FORMAT);
 
         logEntries = new ArrayList<>();
         for (File logFile : logFiles) {
-            BufferedReader reader = new BufferedReader(new FileReader(logFile));
+            BufferedReader reader = getBufferedReader(logFile);
             LOG.info("Reading from file: " + logFile);
             String cluster = getCluster(logFile);
             String line;
             LogEntry logEntry = null;
-            while ((line = reader.readLine()) != null) {
+            while ((line = readLine(reader)) != null) {
                 Matcher datePatternMatcher = DATE_PATTERN.matcher(line);
                 if (datePatternMatcher.find()) {
                     if (logEntry != null) {
@@ -67,17 +138,13 @@ public class Main {
                         logEntries.add(logEntry);
                     }
                     // start new log entry
-                    Date date = simpleDateFormat.parse(line);
+                    Date date = parseDateFromLine(simpleDateFormat, line);
                     logEntry = new LogEntry(date, line, cluster);
                 } else if (logEntry != null) {
                     // continuation of current entry
                     logEntry.append(line);
                 } else {
                     throw new IllegalStateException("Line could not be processed: " + line);
-                }
-                Matcher excludeMatcher = EXCLUDE_PATTERN.matcher(line);
-                if (excludeMatcher.find()) {
-                    logEntry.setExclude();
                 }
             }
             // Write final LogEntry
@@ -86,23 +153,71 @@ public class Main {
         LOG.info(String.format("Read %d lines", logEntries.size()));
     }
 
+    private static Date parseDateFromLine(SimpleDateFormat simpleDateFormat, String line) throws LogCombinerException {
+        try {
+            return simpleDateFormat.parse(line);
+        } catch (ParseException e) {
+            throw new LogCombinerException("Error parsing date from " + line, e);
+        }
+    }
+
+    private static String readLine(BufferedReader reader) throws LogCombinerException {
+        try {
+            return reader.readLine();
+        } catch (IOException e) {
+            throw new LogCombinerException("Error reading line", e);
+        }
+    }
+
+    private static BufferedReader getBufferedReader(File logFile) throws LogCombinerException {
+        try {
+            return new BufferedReader(new FileReader(logFile));
+        } catch (FileNotFoundException e) {
+            throw new LogCombinerException("Error opening " +  logFile, e);
+        }
+    }
+
     private static String getCluster(File logFile) {
         return logFile.getParent().substring(logFile.getParent().length()-1);
     }
 
-    private static void writeLogs() throws IOException {
+    private static void writeLogs() throws LogCombinerException {
         Collections.sort(logEntries);
 
         int excludeCount = 0;
-        FileWriter writer = new FileWriter(OUTPUT_FILE);
+        FileWriter writer = getFileWriter();
         for (LogEntry logEntry : logEntries) {
             if (!logEntry.isExclude()) {
-                writer.write(logEntry.toString());
+                write(writer, logEntry);
             } else {
                 excludeCount++;
             }
         }
         LOG.info(String.format("Excluded %d lines", excludeCount));
-        writer.close();
+        close(writer);
+    }
+
+    private static void close(FileWriter writer) throws LogCombinerException {
+        try {
+            writer.close();
+        } catch (IOException e) {
+            throw new LogCombinerException("Error closing writer", e);
+        }
+    }
+
+    private static void write(FileWriter writer, LogEntry logEntry) throws LogCombinerException {
+        try {
+            writer.write(logEntry.toString());
+        } catch (IOException e) {
+            throw new LogCombinerException("Error writing LogEntry " + logEntry, e);
+        }
+    }
+
+    private static FileWriter getFileWriter() throws LogCombinerException {
+        try {
+            return new FileWriter(OUTPUT_FILE);
+        } catch (IOException e) {
+            throw new LogCombinerException("Error opening file " + OUTPUT_FILE, e);
+        }
     }
 }

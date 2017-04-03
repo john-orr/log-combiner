@@ -82,8 +82,7 @@ public class Main {
     }
 
     private static void loadProperties() throws LogCombinerException {
-        FileInputStream input;
-        input = getFileInputStream();
+        FileInputStream input = getFileInputStream();
         try {
             PROPERTIES.load(input);
         } catch (IOException e) {

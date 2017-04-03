@@ -95,7 +95,7 @@ public class Main {
         try {
             input = new FileInputStream("resources/config.properties");
         } catch (FileNotFoundException e) {
-            throw new LogCombinerException("Error opening file", e);
+            throw new LogCombinerException("Error opening properties file", e);
         }
         return input;
     }

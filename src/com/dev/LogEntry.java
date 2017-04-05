@@ -1,26 +1,56 @@
 package com.dev;
 
+import com.dev.util.LogCombinerException;
+import com.dev.util.LogLevel;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LogEntry implements Comparable {
 
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
+
     static Date FROM_DATE;
     static Date TO_DATE;
     static Pattern EXCLUDE_PATTERN;
+    static LogLevel LOG_LEVEL;
 
     private Date date;
     private StringBuilder content;
     private String cluster;
     private boolean exclude;
 
-    LogEntry(Date date, String content, String cluster) {
-        this.date = date;
+    LogEntry(String content, String cluster) throws LogCombinerException {
+        this.date = parseDateFromLine(content);
         this.content = new StringBuilder(content);
         this.cluster = cluster;
-        if (outsideRange(date) || shouldExclude(content)) {
+        if (outsideRange(date) || logLevelTooLow(content) || shouldExclude(content)) {
             exclude = true;
         }
+    }
+
+    private static Date parseDateFromLine(String line) throws LogCombinerException {
+        try {
+            return DATE_FORMAT.parse(line);
+        } catch (ParseException e) {
+            throw new LogCombinerException("Error parsing date from " + line, e);
+        }
+    }
+
+    private static LogLevel parseLogLevelFromLine(String line) throws LogCombinerException {
+        Matcher extractLevelMatcher = Pattern.compile(",\\d{3} (.+?):").matcher(line);
+        if (extractLevelMatcher.find()) {
+            return LogLevel.valueOf(extractLevelMatcher.group(1).trim());
+        } else {
+            throw new LogCombinerException("Error parsing log level from " + line);
+        }
+    }
+
+    private boolean logLevelTooLow(String line) throws LogCombinerException {
+        return parseLogLevelFromLine(line).getLevel() <= LOG_LEVEL.getLevel();
     }
 
     private boolean shouldExclude(String content) {

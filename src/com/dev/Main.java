@@ -1,6 +1,7 @@
 package com.dev;
 
 import com.dev.util.LogCombinerException;
+import com.dev.util.LogLevel;
 import com.dev.util.Logger;
 
 import java.io.*;
@@ -16,7 +17,6 @@ public class Main {
 
     private static final List<String> LOCATIONS = Arrays.asList("resources/node1", "resources/node2");
     private static final String FILENAME_FILTER = "^spo_admin.log(\\.\\d)?$";
-    private static final String DATE_FORMAT = "dd MMM yyyy HH:mm:ss,SSS";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
 
@@ -38,6 +38,16 @@ public class Main {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
         parseDateFrom(simpleDateFormat);
         parseDateTo(simpleDateFormat);
+        setLogLevel();
+    }
+
+    private static void setLogLevel() throws LogCombinerException {
+        String logLevel = PROPERTIES.getProperty("exclude.level");
+        if (logLevel != null) {
+            LogEntry.LOG_LEVEL = LogLevel.valueOf(logLevel.toUpperCase());
+        } else {
+            throw new LogCombinerException("Property exclude.level not found");
+        }
     }
 
     private static void setExcludePattern() throws LogCombinerException {
@@ -120,7 +130,6 @@ public class Main {
     }
 
     private static void readLogs() throws LogCombinerException {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_FORMAT);
 
         logEntries = new ArrayList<>();
         for (File logFile : logFiles) {
@@ -137,27 +146,18 @@ public class Main {
                         logEntries.add(logEntry);
                     }
                     // start new log entry
-                    Date date = parseDateFromLine(simpleDateFormat, line);
-                    logEntry = new LogEntry(date, line, cluster);
+                    logEntry = new LogEntry(line, cluster);
                 } else if (logEntry != null) {
                     // continuation of current entry
                     logEntry.append(line);
                 } else {
-                    throw new IllegalStateException("Line could not be processed: " + line);
+                    throw new LogCombinerException("Line could not be processed: " + line);
                 }
             }
             // Write final LogEntry
             logEntries.add(logEntry);
         }
         LOG.info(String.format("Read %d lines", logEntries.size()));
-    }
-
-    private static Date parseDateFromLine(SimpleDateFormat simpleDateFormat, String line) throws LogCombinerException {
-        try {
-            return simpleDateFormat.parse(line);
-        } catch (ParseException e) {
-            throw new LogCombinerException("Error parsing date from " + line, e);
-        }
     }
 
     private static String readLine(BufferedReader reader) throws LogCombinerException {

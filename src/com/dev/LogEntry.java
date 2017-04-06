@@ -50,7 +50,7 @@ public class LogEntry implements Comparable {
     }
 
     private boolean logLevelTooLow(String line) throws LogCombinerException {
-        return parseLogLevelFromLine(line).getLevel() <= LOG_LEVEL.getLevel();
+        return parseLogLevelFromLine(line).getLevel() < LOG_LEVEL.getLevel();
     }
 
     private boolean shouldExclude(String content) {

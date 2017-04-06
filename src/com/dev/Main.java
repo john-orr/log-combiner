@@ -43,7 +43,7 @@ public class Main {
 
     private static void setLogLevel() throws LogCombinerException {
         String logLevel = PROPERTIES.getProperty("exclude.level");
-        if (logLevel != null) {
+        if (logLevel != null && !logLevel.isEmpty()) {
             LogEntry.LOG_LEVEL = LogLevel.valueOf(logLevel.toUpperCase());
         } else {
             throw new LogCombinerException("Property exclude.level not found");

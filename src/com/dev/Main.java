@@ -119,7 +119,7 @@ public class Main {
 
     private static List<File> getFiles(String directory) {
         File directoryFile = new File(directory);
-        LOG.info(directoryFile.getAbsolutePath());
+        LOG.info("Looking for files in " + directoryFile.getAbsolutePath());
         File[] files = directoryFile.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {

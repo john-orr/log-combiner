@@ -16,7 +16,7 @@ public class Main {
     private static final Logger LOG = new Logger(Main.class);
 
     private static final List<String> LOCATIONS = Arrays.asList("resources/node1", "resources/node2");
-    private static final String FILENAME_FILTER = "^spo_admin.log(\\.\\d)?$";
+    private static final String FILENAME_FILTER = "^spo_admin(\\.\\d+)*.log(\\.\\d)?$";
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
 

@@ -5,7 +5,7 @@ import java.util.Date;
 
 public class Logger {
 
-    private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
+    private final SimpleDateFormat dateFormatter = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
 
     private final String className;
 
@@ -14,6 +14,6 @@ public class Logger {
     }
 
     public void info(String message) {
-        System.out.println(DATE_FORMATTER.format(new Date()) + " INFO: " + className + " " + message);
+        System.out.println(dateFormatter.format(new Date()) + " INFO: " + className + " " + message);
     }
 }

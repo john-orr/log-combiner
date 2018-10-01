@@ -20,7 +20,7 @@ public class Main {
     private static final Pattern DATE_PATTERN = Pattern.compile("^\\d{2} \\w{3} \\d{4}");
     private static final String OUTPUT_FILE = "spo_admin.log";
 
-    private static Properties PROPERTIES = new Properties();
+    private static Properties properties = new Properties();
 
     private static List<File> logFiles;
     private static List<LogEntry> logEntries;
@@ -43,19 +43,19 @@ public class Main {
     }
 
     private static void setLogLevel() throws LogCombinerException {
-        String logLevel = PROPERTIES.getProperty("exclude.level");
+        String logLevel = properties.getProperty("exclude.level");
         if (logLevel != null && !logLevel.isEmpty()) {
-            LogEntry.LOG_LEVEL = LogLevel.valueOf(logLevel.toUpperCase());
+            LogEntry.logLevel = LogLevel.valueOf(logLevel.toUpperCase());
         } else {
             throw new LogCombinerException("Property exclude.level not found");
         }
     }
 
     private static void setExcludePattern() throws LogCombinerException {
-        String regex = PROPERTIES.getProperty("exclude.regex");
+        String regex = properties.getProperty("exclude.regex");
         if (regex != null) {
             if (!regex.isEmpty()) {
-                LogEntry.EXCLUDE_PATTERN = Pattern.compile(regex);
+                LogEntry.excludePattern = Pattern.compile(regex);
             }
         } else {
             throw new LogCombinerException("Property exclude.regex not found");
@@ -63,10 +63,10 @@ public class Main {
     }
 
     private static void setIncludePattern() throws LogCombinerException {
-        String regex = PROPERTIES.getProperty("include.regex");
+        String regex = properties.getProperty("include.regex");
         if (regex != null) {
             if (!regex.isEmpty()) {
-                LogEntry.INCLUDE_PATTERN = Pattern.compile(regex);
+                LogEntry.includePattern = Pattern.compile(regex);
             }
         } else {
             throw new LogCombinerException("Property include.regex not found");
@@ -74,11 +74,11 @@ public class Main {
     }
 
     private static void parseDateTo(SimpleDateFormat simpleDateFormat) throws LogCombinerException {
-        String dateTo = PROPERTIES.getProperty("date.to");
+        String dateTo = properties.getProperty("date.to");
         if (dateTo != null) {
             if (!dateTo.isEmpty()) {
                 try {
-                    LogEntry.TO_DATE = simpleDateFormat.parse(dateTo);
+                    LogEntry.toDate = simpleDateFormat.parse(dateTo);
                 } catch (ParseException e) {
                     throw new LogCombinerException("Error parsing property date.to", e);
                 }
@@ -89,11 +89,11 @@ public class Main {
     }
 
     private static void parseDateFrom(SimpleDateFormat simpleDateFormat) throws LogCombinerException {
-        String dateFrom = PROPERTIES.getProperty("date.from");
+        String dateFrom = properties.getProperty("date.from");
         if (dateFrom != null) {
             if (!dateFrom.isEmpty()) {
                 try {
-                    LogEntry.FROM_DATE = simpleDateFormat.parse(dateFrom);
+                    LogEntry.fromDate = simpleDateFormat.parse(dateFrom);
                 } catch (ParseException e) {
                     throw new LogCombinerException("Error parsing property date.from", e);
                 }
@@ -106,7 +106,7 @@ public class Main {
     private static void loadProperties() throws LogCombinerException {
         FileInputStream input = getFileInputStream();
         try {
-            PROPERTIES.load(input);
+            properties.load(input);
         } catch (IOException e) {
             throw new LogCombinerException("Error loading properties", e);
         }
@@ -132,12 +132,7 @@ public class Main {
     private static List<File> getFiles(String directory) {
         File directoryFile = new File(directory);
         LOG.info("Looking for files in " + directoryFile.getAbsolutePath());
-        File[] files = directoryFile.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.matches(FILENAME_FILTER);
-            }
-        });
+        File[] files = directoryFile.listFiles((dir, name) -> name.matches(FILENAME_FILTER));
         return Arrays.asList(files);
     }
 
@@ -209,7 +204,7 @@ public class Main {
     }
 
     private static boolean shouldInclude(LogEntry logEntry) {
-        return LogEntry.INCLUDE_PATTERN == null || LogEntry.INCLUDE_PATTERN.matcher(logEntry.toString()).find();
+        return LogEntry.includePattern == null || LogEntry.includePattern.matcher(logEntry.toString()).find();
     }
 
     private static void close(FileWriter writer) throws LogCombinerException {

@@ -6,18 +6,19 @@ import com.dev.util.LogLevel;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LogEntry implements Comparable {
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
 
-    static Date FROM_DATE;
-    static Date TO_DATE;
-    static Pattern EXCLUDE_PATTERN;
-    static Pattern INCLUDE_PATTERN;
-    static LogLevel LOG_LEVEL;
+    static Date fromDate;
+    static Date toDate;
+    static Pattern excludePattern;
+    static Pattern includePattern;
+    static LogLevel logLevel;
 
     private Date date;
     private StringBuilder content;
@@ -33,9 +34,9 @@ public class LogEntry implements Comparable {
         }
     }
 
-    private static Date parseDateFromLine(String line) throws LogCombinerException {
+    private Date parseDateFromLine(String line) throws LogCombinerException {
         try {
-            return DATE_FORMAT.parse(line);
+            return dateFormat.parse(line);
         } catch (ParseException e) {
             throw new LogCombinerException("Error parsing date from " + line, e);
         }
@@ -51,19 +52,19 @@ public class LogEntry implements Comparable {
     }
 
     private boolean logLevelTooLow(String line) throws LogCombinerException {
-        return parseLogLevelFromLine(line).getLevel() < LOG_LEVEL.getLevel();
+        return parseLogLevelFromLine(line).getLevel() < logLevel.getLevel();
     }
 
     private boolean shouldExclude(String content) {
-        return EXCLUDE_PATTERN != null && EXCLUDE_PATTERN.matcher(content).find();
+        return excludePattern != null && excludePattern.matcher(content).find();
     }
 
     private boolean outsideRange(Date date) {
-        return FROM_DATE != null && date.before(FROM_DATE)
-                || TO_DATE != null && date.after(TO_DATE);
+        return fromDate != null && date.before(fromDate)
+                || toDate != null && date.after(toDate);
     }
 
-    public boolean isExclude() {
+    boolean isExclude() {
         return exclude;
     }
 
@@ -80,11 +81,30 @@ public class LogEntry implements Comparable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        LogEntry logEntry = (LogEntry) o;
+        return exclude == logEntry.exclude &&
+                Objects.equals(dateFormat, logEntry.dateFormat) &&
+                Objects.equals(date, logEntry.date) &&
+                Objects.equals(content, logEntry.content) &&
+                Objects.equals(cluster, logEntry.cluster);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dateFormat, date, content, cluster, exclude);
+    }
+
+    @Override
     public String toString() {
         return cluster + " " + content + "\n";
     }
 
-    public void append(String line) {
+    void append(String line) {
         content.append("\n").append(line);
         if (shouldExclude(line)) {
             exclude = true;

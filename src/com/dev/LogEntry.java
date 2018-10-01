@@ -16,6 +16,7 @@ public class LogEntry implements Comparable {
     static Date FROM_DATE;
     static Date TO_DATE;
     static Pattern EXCLUDE_PATTERN;
+    static Pattern INCLUDE_PATTERN;
     static LogLevel LOG_LEVEL;
 
     private Date date;

@@ -35,6 +35,7 @@ public class Main {
     private static void init() throws LogCombinerException {
         loadProperties();
         setExcludePattern();
+        setIncludePattern();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
         parseDateFrom(simpleDateFormat);
         parseDateTo(simpleDateFormat);
@@ -58,6 +59,17 @@ public class Main {
             }
         } else {
             throw new LogCombinerException("Property exclude.regex not found");
+        }
+    }
+
+    private static void setIncludePattern() throws LogCombinerException {
+        String regex = PROPERTIES.getProperty("include.regex");
+        if (regex != null) {
+            if (!regex.isEmpty()) {
+                LogEntry.INCLUDE_PATTERN = Pattern.compile(regex);
+            }
+        } else {
+            throw new LogCombinerException("Property include.regex not found");
         }
     }
 
@@ -186,7 +198,7 @@ public class Main {
         int excludeCount = 0;
         FileWriter writer = getFileWriter();
         for (LogEntry logEntry : logEntries) {
-            if (!logEntry.isExclude()) {
+            if (!logEntry.isExclude() && shouldInclude(logEntry)) {
                 write(writer, logEntry);
             } else {
                 excludeCount++;
@@ -194,6 +206,10 @@ public class Main {
         }
         LOG.info(String.format("Excluded %d lines", excludeCount));
         close(writer);
+    }
+
+    private static boolean shouldInclude(LogEntry logEntry) {
+        return LogEntry.INCLUDE_PATTERN == null || LogEntry.INCLUDE_PATTERN.matcher(logEntry.toString()).find();
     }
 
     private static void close(FileWriter writer) throws LogCombinerException {

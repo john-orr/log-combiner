@@ -2,9 +2,10 @@ package com.dev.util;
 
 public enum LogLevel {
 
-    INFO(0),
-    WARN(1),
-    ERROR(2);
+    DEBUG(0),
+    INFO(1),
+    WARN(2),
+    ERROR(3);
 
     int level;
 

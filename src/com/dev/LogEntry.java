@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class LogEntry implements Comparable {
+public class LogEntry implements Comparable<LogEntry> {
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy HH:mm:ss,SSS");
 
@@ -69,11 +69,10 @@ public class LogEntry implements Comparable {
     }
 
     @Override
-    public int compareTo(Object o) {
-        LogEntry that = (LogEntry) o;
-        if (this.date.before(that.date)) {
+    public int compareTo(LogEntry o) {
+        if (this.date.before(o.date)) {
             return -1;
-        } else if (this.date.after(that.date)) {
+        } else if (this.date.after(o.date)) {
             return 1;
         } else {
             return 0;
